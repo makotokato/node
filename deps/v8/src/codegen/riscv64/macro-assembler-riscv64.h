@@ -249,17 +249,13 @@ class V8_EXPORT_PRIVATE TurboAssembler : public TurboAssemblerBase {
 
   // Load the builtin given by the Smi in |builtin| into the same
   // register.
-  void LoadEntryFromBuiltinIndex(Register builtin);
-  void LoadEntryFromBuiltin(Builtin builtin, Register destination);
-  MemOperand EntryFromBuiltinAsOperand(Builtin builtin);
-  void CallBuiltinByIndex(Register builtin);
-  void CallBuiltin(Builtin builtin);
-  void TailCallBuiltin(Builtin builtin);
+  void LoadEntryFromBuiltinIndex(Register builtin_index);
+  void CallBuiltinByIndex(Register builtin_index) override;
 
-  void LoadCodeObjectEntry(Register destination, Register code_object);
-  void CallCodeObject(Register code_object);
+  void LoadCodeObjectEntry(Register destination, Register code_object) override;
+  void CallCodeObject(Register code_object) override;
   void JumpCodeObject(Register code_object,
-                      JumpMode jump_mode = JumpMode::kJump);
+                      JumpMode jump_mode = JumpMode::kJump) override;
 
   // Generates an instruction sequence s.t. the return address points to the
   // instruction following the call.

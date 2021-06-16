@@ -499,6 +499,8 @@ void LiftoffAssembler::StoreTaggedPointer(Register dst_addr,
 
   if (skip_write_barrier || FLAG_disable_write_barriers) return;
 
+  if (skip_write_barrier) return;
+
   Label write_barrier;
   Label exit;
   CheckPageFlag(dst_addr, scratch,

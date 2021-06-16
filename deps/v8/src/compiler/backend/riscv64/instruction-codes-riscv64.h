@@ -332,8 +332,8 @@ namespace compiler {
   V(RiscvI32x4AllTrue)                      \
   V(RiscvI16x8AllTrue)                      \
   V(RiscvV128AnyTrue)                       \
-  V(RiscvI8x16AllTrue)                      \
-  V(RiscvI64x2AllTrue)                      \
+  V(RiscvV8x16AllTrue)                      \
+  V(RiscvV64x2AllTrue)                      \
   V(RiscvS32x4InterleaveRight)              \
   V(RiscvS32x4InterleaveLeft)               \
   V(RiscvS32x4PackEven)                     \
