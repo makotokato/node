@@ -1,4 +1,4 @@
-# Asynchronous Context Tracking
+# Asynchronous context tracking
 
 <!--introduced_in=v16.4.0-->
 
@@ -7,6 +7,7 @@
 <!-- source_link=lib/async_hooks.js -->
 
 ## Introduction
+
 These classes are used to associate state and propagate it throughout
 callbacks and promise chains.
 They allow storing data throughout the lifetime of a web request
@@ -17,14 +18,15 @@ The `AsyncLocalStorage` and `AsyncResource` classes are part of the
 `async_hooks` module:
 
 ```mjs
-import async_hooks from 'async_hooks';
+import { AsyncLocalStorage, AsyncResource } from 'async_hooks';
 ```
 
 ```cjs
-const async_hooks = require('async_hooks');
+const { AsyncLocalStorage, AsyncResource } = require('async_hooks');
 ```
 
 ## Class: `AsyncLocalStorage`
+
 <!-- YAML
 added:
  - v13.10.0
@@ -115,6 +117,7 @@ Multiple instances can safely exist simultaneously without risk of interfering
 with each other data.
 
 ### `new AsyncLocalStorage()`
+
 <!-- YAML
 added:
  - v13.10.0
@@ -125,6 +128,7 @@ Creates a new instance of `AsyncLocalStorage`. Store is only provided within a
 `run()` call or after an `enterWith()` call.
 
 ### `asyncLocalStorage.disable()`
+
 <!-- YAML
 added:
  - v13.10.0
@@ -149,6 +153,7 @@ Use this method when the `asyncLocalStorage` is not in use anymore
 in the current process.
 
 ### `asyncLocalStorage.getStore()`
+
 <!-- YAML
 added:
  - v13.10.0
@@ -163,6 +168,7 @@ calling `asyncLocalStorage.run()` or `asyncLocalStorage.enterWith()`, it
 returns `undefined`.
 
 ### `asyncLocalStorage.enterWith(store)`
+
 <!-- YAML
 added:
  - v13.11.0
@@ -212,6 +218,7 @@ asyncLocalStorage.getStore(); // Returns the same object
 ```
 
 ### `asyncLocalStorage.run(store, callback[, ...args])`
+
 <!-- YAML
 added:
  - v13.10.0
@@ -251,6 +258,7 @@ try {
 ```
 
 ### `asyncLocalStorage.exit(callback[, ...args])`
+
 <!-- YAML
 added:
  - v13.10.0
@@ -308,24 +316,22 @@ functions called by `foo`. Outside of `run`, calling `getStore` will return
 
 ### Troubleshooting: Context loss
 
-In most cases your application or library code should have no issues with
-`AsyncLocalStorage`. But in rare cases you may face situations when the
-current store is lost in one of the asynchronous operations. In those cases,
-consider the following options.
+In most cases, `AsyncLocalStorage` works without issues. In rare situations, the
+current store is lost in one of the asynchronous operations.
 
 If your code is callback-based, it is enough to promisify it with
-[`util.promisify()`][], so it starts working with native promises.
+[`util.promisify()`][] so it starts working with native promises.
 
-If you need to keep using callback-based API, or your code assumes
+If you need to use a callback-based API or your code assumes
 a custom thenable implementation, use the [`AsyncResource`][] class
-to associate the asynchronous operation with the correct execution context. To
-do so, you will need to identify the function call responsible for the
-context loss. You can do that by logging the content of
-`asyncLocalStorage.getStore()` after the calls you suspect are responsible for
-the loss. When the code logs `undefined`, the last callback called is probably
-responsible for the context loss.
+to associate the asynchronous operation with the correct execution context.
+Find the function call responsible for the context loss by logging the content
+of `asyncLocalStorage.getStore()` after the calls you suspect are responsible
+for the loss. When the code logs `undefined`, the last callback called is
+probably responsible for the context loss.
 
 ## Class: `AsyncResource`
+
 <!-- YAML
 changes:
  - version: v16.4.0
@@ -434,11 +440,16 @@ class DBQuery extends AsyncResource {
 ```
 
 ### Static method: `AsyncResource.bind(fn[, type, [thisArg]])`
+
 <!-- YAML
 added:
   - v14.8.0
   - v12.19.0
 changes:
+  - version: v16.15.0
+    pr-url: https://github.com/nodejs/node/pull/42177
+    description: Changed the default when `thisArg` is undefined to use `this`
+                 from the caller.
   - version: v16.0.0
     pr-url: https://github.com/nodejs/node/pull/36782
     description: Added optional thisArg.
@@ -455,11 +466,16 @@ The returned function will have an `asyncResource` property referencing
 the `AsyncResource` to which the function is bound.
 
 ### `asyncResource.bind(fn[, thisArg])`
+
 <!-- YAML
 added:
   - v14.8.0
   - v12.19.0
 changes:
+  - version: v16.15.0
+    pr-url: https://github.com/nodejs/node/pull/42177
+    description: Changed the default when `thisArg` is undefined to use `this`
+                 from the caller.
   - version: v16.0.0
     pr-url: https://github.com/nodejs/node/pull/36782
     description: Added optional thisArg.
@@ -474,6 +490,7 @@ The returned function will have an `asyncResource` property referencing
 the `AsyncResource` to which the function is bound.
 
 ### `asyncResource.runInAsyncScope(fn[, thisArg, ...args])`
+
 <!-- YAML
 added: v9.6.0
 -->
@@ -507,6 +524,7 @@ never be called.
   `AsyncResource` constructor.
 
 <a id="async-resource-worker-pool"></a>
+
 ### Using `AsyncResource` for a `Worker` thread pool
 
 The following example shows how to use the `AsyncResource` class to properly

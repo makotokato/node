@@ -16,7 +16,7 @@
 #define CHECK_TO_NUMBER(env, context, result, src) \
   CHECK_TO_TYPE((env), Number, (context), (result), (src), napi_number_expected)
 
-// n-api defines NAPI_AUTO_LENGHTH as the indicator that a string
+// n-api defines NAPI_AUTO_LENGTH as the indicator that a string
 // is null terminated. For V8 the equivalent is -1. The assert
 // validates that our cast of NAPI_AUTO_LENGTH results in -1 as
 // needed by V8.
@@ -761,12 +761,14 @@ napi_status napi_get_last_error_info(napi_env env,
       NAPI_ARRAYSIZE(error_messages) == last_status + 1,
       "Count of error messages must match count of error values");
   CHECK_LE(env->last_error.error_code, last_status);
-
   // Wait until someone requests the last error information to fetch the error
   // message string
   env->last_error.error_message =
       error_messages[env->last_error.error_code];
 
+  if (env->last_error.error_code == napi_ok) {
+     napi_clear_last_error(env);
+  }
   *result = &(env->last_error);
   return napi_ok;
 }
@@ -1660,6 +1662,27 @@ napi_status napi_create_symbol(napi_env env,
   return napi_clear_last_error(env);
 }
 
+napi_status node_api_symbol_for(napi_env env,
+                                const char* utf8description,
+                                size_t length,
+                                napi_value* result) {
+  CHECK_ENV(env);
+  CHECK_ARG(env, result);
+
+  napi_value js_description_string;
+  STATUS_CALL(napi_create_string_utf8(env,
+                                      utf8description,
+                                      length,
+                                      &js_description_string));
+  v8::Local<v8::String> description_string =
+    v8impl::V8LocalValueFromJsValue(js_description_string).As<v8::String>();
+
+  *result = v8impl::JsValueFromV8LocalValue(
+    v8::Symbol::For(env->isolate, description_string));
+
+  return napi_clear_last_error(env);
+}
+
 static inline napi_status set_error_code(napi_env env,
                                          v8::Local<v8::Value> error,
                                          napi_value code,
@@ -1740,6 +1763,26 @@ napi_status napi_create_range_error(napi_env env,
 
   v8::Local<v8::Value> error_obj =
       v8::Exception::RangeError(message_value.As<v8::String>());
+  STATUS_CALL(set_error_code(env, error_obj, code, nullptr));
+
+  *result = v8impl::JsValueFromV8LocalValue(error_obj);
+
+  return napi_clear_last_error(env);
+}
+
+napi_status node_api_create_syntax_error(napi_env env,
+                                         napi_value code,
+                                         napi_value msg,
+                                         napi_value* result) {
+  CHECK_ENV(env);
+  CHECK_ARG(env, msg);
+  CHECK_ARG(env, result);
+
+  v8::Local<v8::Value> message_value = v8impl::V8LocalValueFromJsValue(msg);
+  RETURN_STATUS_IF_FALSE(env, message_value->IsString(), napi_string_expected);
+
+  v8::Local<v8::Value> error_obj =
+      v8::Exception::SyntaxError(message_value.As<v8::String>());
   STATUS_CALL(set_error_code(env, error_obj, code, nullptr));
 
   *result = v8impl::JsValueFromV8LocalValue(error_obj);
@@ -1956,6 +1999,24 @@ napi_status napi_throw_range_error(napi_env env,
   CHECK_NEW_FROM_UTF8(env, str, msg);
 
   v8::Local<v8::Value> error_obj = v8::Exception::RangeError(str);
+  STATUS_CALL(set_error_code(env, error_obj, nullptr, code));
+
+  isolate->ThrowException(error_obj);
+  // any VM calls after this point and before returning
+  // to the javascript invoker will fail
+  return napi_clear_last_error(env);
+}
+
+napi_status node_api_throw_syntax_error(napi_env env,
+                                        const char* code,
+                                        const char* msg) {
+  NAPI_PREAMBLE(env);
+
+  v8::Isolate* isolate = env->isolate;
+  v8::Local<v8::String> str;
+  CHECK_NEW_FROM_UTF8(env, str, msg);
+
+  v8::Local<v8::Value> error_obj = v8::Exception::SyntaxError(str);
   STATUS_CALL(set_error_code(env, error_obj, nullptr, code));
 
   isolate->ThrowException(error_obj);

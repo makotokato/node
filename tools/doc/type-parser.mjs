@@ -203,9 +203,13 @@ const customTypesMap = {
 
   'Stream': 'stream.html#stream',
   'stream.Duplex': 'stream.html#class-streamduplex',
+  'Duplex': 'stream.html#class-streamduplex',
   'stream.Readable': 'stream.html#class-streamreadable',
+  'Readable': 'stream.html#class-streamreadable',
   'stream.Transform': 'stream.html#class-streamtransform',
+  'Transform': 'stream.html#class-streamtransform',
   'stream.Writable': 'stream.html#class-streamwritable',
+  'Writable': 'stream.html#class-streamwritable',
 
   'Immediate': 'timers.html#class-immediate',
   'Timeout': 'timers.html#class-timeout',
@@ -232,35 +236,40 @@ const customTypesMap = {
   'zlib options': 'zlib.html#class-options',
 
   'ReadableStream':
-    'webstreams.md#class-readablestream',
+    'webstreams.html#class-readablestream',
   'ReadableStreamDefaultReader':
-    'webstreams.md#class-readablestreamdefaultreader',
+    'webstreams.html#class-readablestreamdefaultreader',
   'ReadableStreamBYOBReader':
-    'webstreams.md#class-readablestreambyobreader',
+    'webstreams.html#class-readablestreambyobreader',
   'ReadableStreamDefaultController':
-    'webstreams.md#class-readablestreamdefaultcontroller',
+    'webstreams.html#class-readablestreamdefaultcontroller',
   'ReadableByteStreamController':
-    'webstreams.md#class-readablebytestreamcontroller',
+    'webstreams.html#class-readablebytestreamcontroller',
   'ReadableStreamBYOBRequest':
-    'webstreams.md#class-readablestreambyobrequest',
+    'webstreams.html#class-readablestreambyobrequest',
   'WritableStream':
-    'webstreams.md#class-writablestream',
+    'webstreams.html#class-writablestream',
   'WritableStreamDefaultWriter':
-    'webstreams.md#class-writablestreamdefaultwriter',
+    'webstreams.html#class-writablestreamdefaultwriter',
   'WritableStreamDefaultController':
-    'webstreams.md#class-writablestreamdefaultcontroller',
+    'webstreams.html#class-writablestreamdefaultcontroller',
   'TransformStream':
-    'webstreams.md#class-transformstream',
+    'webstreams.html#class-transformstream',
   'TransformStreamDefaultController':
-    'webstreams.md#class-transformstreamdefaultcontroller',
+    'webstreams.html#class-transformstreamdefaultcontroller',
   'ByteLengthQueuingStrategy':
-    'webstreams.md#class-bytelengthqueuingstrategy',
+    'webstreams.html#class-bytelengthqueuingstrategy',
   'CountQueuingStrategy':
-    'webstreams.md#class-countqueuingstrategy',
+    'webstreams.html#class-countqueuingstrategy',
   'TextEncoderStream':
-    'webstreams.md#class-textencoderstream',
+    'webstreams.html#class-textencoderstream',
   'TextDecoderStream':
-    'webstreams.md#class-textdecoderstream',
+    'webstreams.html#class-textdecoderstream',
+
+  'FormData': 'https://developer.mozilla.org/en-US/docs/Web/API/FormData',
+  'Headers': 'https://developer.mozilla.org/en-US/docs/Web/API/Headers',
+  'Response': 'https://developer.mozilla.org/en-US/docs/Web/API/Response',
+  'Request': 'https://developer.mozilla.org/en-US/docs/Web/API/Request',
 };
 
 const arrayPart = /(?:\[])+$/;

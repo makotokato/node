@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2021 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2022 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved
  * Copyright 2005 Nokia. All rights reserved.
  *
@@ -574,7 +574,56 @@ static void clear_ciphers(SSL *s)
     ssl_clear_hash_ctx(&s->write_hash);
 }
 
+#ifndef OPENSSL_NO_QUIC
 int SSL_clear(SSL *s)
+{
+    if (!SSL_clear_not_quic(s))
+        return 0;
+    return SSL_clear_quic(s);
+}
+
+int SSL_clear_quic(SSL *s)
+{
+    OPENSSL_free(s->ext.peer_quic_transport_params_draft);
+    s->ext.peer_quic_transport_params_draft = NULL;
+    s->ext.peer_quic_transport_params_draft_len = 0;
+    OPENSSL_free(s->ext.peer_quic_transport_params);
+    s->ext.peer_quic_transport_params = NULL;
+    s->ext.peer_quic_transport_params_len = 0;
+    s->quic_read_level = ssl_encryption_initial;
+    s->quic_write_level = ssl_encryption_initial;
+    s->quic_latest_level_received = ssl_encryption_initial;
+    while (s->quic_input_data_head != NULL) {
+        QUIC_DATA *qd;
+
+        qd = s->quic_input_data_head;
+        s->quic_input_data_head = qd->next;
+        OPENSSL_free(qd);
+    }
+    s->quic_input_data_tail = NULL;
+    BUF_MEM_free(s->quic_buf);
+    s->quic_buf = NULL;
+    s->quic_next_record_start = 0;
+    memset(s->client_hand_traffic_secret, 0, EVP_MAX_MD_SIZE);
+    memset(s->server_hand_traffic_secret, 0, EVP_MAX_MD_SIZE);
+    memset(s->client_early_traffic_secret, 0, EVP_MAX_MD_SIZE);
+    /*
+     * CONFIG - DON'T CLEAR
+     * s->ext.quic_transport_params
+     * s->ext.quic_transport_params_len
+     * s->quic_transport_version
+     * s->quic_method = NULL;
+     */
+    return 1;
+}
+#endif
+
+/* Keep this conditional very local */
+#ifndef OPENSSL_NO_QUIC
+int SSL_clear_not_quic(SSL *s)
+#else
+int SSL_clear(SSL *s)
+#endif
 {
     if (s->method == NULL) {
         SSLerr(SSL_F_SSL_CLEAR, SSL_R_NO_METHOD_SPECIFIED);
@@ -1702,6 +1751,8 @@ static int ssl_start_async_job(SSL *s, struct ssl_async_args *args,
         if (s->waitctx == NULL)
             return -1;
     }
+
+    s->rwstate = SSL_NOTHING;
     switch (ASYNC_start_job(&s->job, s->waitctx, &ret, func, args,
                             sizeof(struct ssl_async_args))) {
     case ASYNC_ERR:
@@ -2118,6 +2169,7 @@ int SSL_shutdown(SSL *s)
         if ((s->mode & SSL_MODE_ASYNC) && ASYNC_get_current_job() == NULL) {
             struct ssl_async_args args;
 
+            memset(&args, 0, sizeof(args));
             args.s = s;
             args.type = OTHERFUNC;
             args.f.func_other = s->method->ssl_shutdown;
@@ -3761,6 +3813,7 @@ int SSL_do_handshake(SSL *s)
         if ((s->mode & SSL_MODE_ASYNC) && ASYNC_get_current_job() == NULL) {
             struct ssl_async_args args;
 
+            memset(&args, 0, sizeof(args));
             args.s = s;
 
             ret = ssl_start_async_job(s, &args, ssl_do_handshake_intern);

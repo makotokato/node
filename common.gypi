@@ -36,7 +36,7 @@
 
     # Reset this number to 0 on major V8 upgrades.
     # Increment by one for each non-official patch applied to deps/v8.
-    'v8_embedder_string': '-node.13',
+    'v8_embedder_string': '-node.21',
 
     ##### V8 defaults for Node.js #####
 
@@ -69,6 +69,9 @@
     # Disable V8 untrusted code mitigations.
     # See https://github.com/v8/v8/wiki/Untrusted-code-mitigations
     'v8_untrusted_code_mitigations': 0,
+
+    # Disable v8 hugepage by default.
+    'v8_enable_hugepage%': 0,
 
     # This is more of a V8 dev setting
     # https://github.com/nodejs/node/pull/22920/files#r222779926
@@ -108,11 +111,20 @@
         'obj_dir%': '<(PRODUCT_DIR)/obj.target',
         'v8_base': '<(PRODUCT_DIR)/libv8_snapshot.a',
       }],
+      # V8 pointer compression only supports 64bit architectures.
+      ['target_arch in "arm ia32 mips mipsel ppc"', {
+        'v8_enable_pointer_compression': 0,
+        'v8_enable_31bit_smis_on_64bit_arch': 0,
+      }],
       ['target_arch in "ppc64 s390x"', {
         'v8_enable_backtrace': 1,
       }],
       ['OS=="linux"', {
         'node_section_ordering_info%': ''
+      }],
+      ['OS == "zos"', {
+        # use ICU data file on z/OS
+        'icu_use_data_file_flag%': 1
       }]
     ],
   },
@@ -204,7 +216,11 @@
             # pull in V8's postmortem metadata
             'ldflags': [ '-Wl,-z,allextract' ]
           }],
-          ['OS!="mac" and OS!="win"', {
+          ['OS=="zos"', {
+            # increase performance, number from experimentation
+            'cflags': [ '-qINLINE=::150:100000' ]
+          }],
+          ['OS!="mac" and OS!="win" and OS!="zos"', {
             'cflags': [ '-fno-omit-frame-pointer' ],
           }],
           ['OS=="linux"', {
@@ -328,7 +344,7 @@
       [ 'target_arch=="arm64"', {
         'msvs_configuration_platform': 'arm64',
       }],
-      ['asan == 1 and OS != "mac"', {
+      ['asan == 1 and OS != "mac" and OS != "zos"', {
         'cflags+': [
           '-fno-omit-frame-pointer',
           '-fsanitize=address',
@@ -404,10 +420,6 @@
             'cflags': [ '-m32' ],
             'ldflags': [ '-m32' ],
           }],
-          [ 'target_arch=="x32"', {
-            'cflags': [ '-mx32' ],
-            'ldflags': [ '-mx32' ],
-          }],
           [ 'target_arch=="x64"', {
             'cflags': [ '-m64' ],
             'ldflags': [ '-m64' ],
@@ -420,7 +432,7 @@
             'cflags': [ '-m64', '-mminimal-toc' ],
             'ldflags': [ '-m64' ],
           }],
-          [ 'target_arch=="s390x"', {
+          [ 'target_arch=="s390x" and OS=="linux"', {
             'cflags': [ '-m64', '-march=z196' ],
             'ldflags': [ '-m64', '-march=z196' ],
           }],
@@ -566,6 +578,50 @@
         'defines': [
           'OPENSSL_NO_ASM',
         ],
+      }],
+      ['OS == "zos"', {
+        'defines': [
+          '_XOPEN_SOURCE_EXTENDED',
+          '_XOPEN_SOURCE=600',
+          '_UNIX03_THREADS',
+          '_UNIX03_WITHDRAWN',
+          '_UNIX03_SOURCE',
+          '_OPEN_SYS_SOCK_IPV6',
+          '_OPEN_SYS_FILE_EXT=1',
+          '_POSIX_SOURCE',
+          '_OPEN_SYS',
+          '_OPEN_SYS_IF_EXT',
+          '_OPEN_SYS_SOCK_IPV6',
+          '_OPEN_MSGQ_EXT',
+          '_LARGE_TIME_API',
+          '_ALL_SOURCE',
+          '_AE_BIMODAL=1',
+          '__IBMCPP_TR1__',
+          'NODE_PLATFORM="os390"',
+          'PATH_MAX=1024',
+          '_ENHANCED_ASCII_EXT=0xFFFFFFFF',
+          '_Export=extern',
+          '__static_assert=static_assert',
+        ],
+        'cflags': [
+          '-q64',
+          '-Wc,DLL',
+          '-Wa,GOFF',
+          '-qARCH=10',
+          '-qASCII',
+          '-qTUNE=12',
+          '-qENUM=INT',
+          '-qEXPORTALL',
+          '-qASM',
+        ],
+        'cflags_cc': [
+          '-qxclang=-std=c++14',
+        ],
+        'ldflags': [
+          '-q64',
+        ],
+        # for addons due to v8config.h include of "zos-base.h":
+        'include_dirs':  ['<(zoslib_include_dir)'],
       }],
     ],
   }

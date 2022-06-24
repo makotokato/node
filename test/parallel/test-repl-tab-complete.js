@@ -31,9 +31,7 @@ const assert = require('assert');
 const path = require('path');
 const fixtures = require('../common/fixtures');
 const { builtinModules } = require('module');
-const publicModules = builtinModules.filter(
-  (lib) => !lib.startsWith('_') && !lib.includes('/'),
-);
+const publicModules = builtinModules.filter((lib) => !lib.startsWith('_'));
 
 const hasInspector = process.features.inspector;
 
@@ -559,6 +557,26 @@ testMe.complete('obj.', common.mustCall(function(error, data) {
 // Refs: https://github.com/nodejs/node/pull/11961
 putIn.run(['.clear']);
 testMe.complete('Buffer.prototype.', common.mustCall());
+
+// Make sure repl gives correct autocomplete on literals
+testMe.complete('``.a', common.mustCall((err, data) => {
+  assert.strictEqual(data[0].includes('``.at'), true);
+}));
+testMe.complete('\'\'.a', common.mustCall((err, data) => {
+  assert.strictEqual(data[0].includes('\'\'.at'), true);
+}));
+testMe.complete('"".a', common.mustCall((err, data) => {
+  assert.strictEqual(data[0].includes('"".at'), true);
+}));
+testMe.complete('("").a', common.mustCall((err, data) => {
+  assert.strictEqual(data[0].includes('("").at'), true);
+}));
+testMe.complete('[].a', common.mustCall((err, data) => {
+  assert.strictEqual(data[0].includes('[].at'), true);
+}));
+testMe.complete('{}.a', common.mustCall((err, data) => {
+  assert.deepStrictEqual(data[0], []);
+}));
 
 const testNonGlobal = repl.start({
   input: putIn,

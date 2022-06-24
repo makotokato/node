@@ -20,7 +20,7 @@ const async_hooks = require('async_hooks');
 ## Terminology
 
 An asynchronous resource represents an object with an associated callback.
-This callback may be called multiple times, for example, the `'connection'`
+This callback may be called multiple times, such as the `'connection'`
 event in `net.createServer()`, or just a single time like in `fs.open()`.
 A resource can also be closed before the callback is called. `AsyncHook` does
 not explicitly distinguish between these different cases but will represent them
@@ -190,7 +190,7 @@ const asyncHook = async_hooks.createHook(new MyAddedCallbacks());
 
 Because promises are asynchronous resources whose lifecycle is tracked
 via the async hooks mechanism, the `init()`, `before()`, `after()`, and
-`destroy()` callbacks *must not* be async functions that return promises.
+`destroy()` callbacks _must not_ be async functions that return promises.
 
 ### Error handling
 
@@ -209,14 +209,14 @@ future. This is subject to change in the future if a comprehensive analysis is
 performed to ensure an exception can follow the normal control flow without
 unintentional side effects.
 
-### Printing in AsyncHooks callbacks
+### Printing in `AsyncHook` callbacks
 
 Because printing to the console is an asynchronous operation, `console.log()`
-will cause the AsyncHooks callbacks to be called. Using `console.log()` or
-similar asynchronous operations inside an AsyncHooks callback function will thus
+will cause `AsyncHook` callbacks to be called. Using `console.log()` or
+similar asynchronous operations inside an `AsyncHook` callback function will
 cause an infinite recursion. An easy solution to this when debugging is to use a
 synchronous logging operation such as `fs.writeFileSync(file, msg, flag)`.
-This will print to the file and will not invoke AsyncHooks recursively because
+This will print to the file and will not invoke `AsyncHook` recursively because
 it is synchronous.
 
 ```mjs
@@ -224,7 +224,7 @@ import { writeFileSync } from 'fs';
 import { format } from 'util';
 
 function debug(...args) {
-  // Use a function like this one when debugging inside an AsyncHooks callback
+  // Use a function like this one when debugging inside an AsyncHook callback
   writeFileSync('log.out', `${format(...args)}\n`, { flag: 'a' });
 }
 ```
@@ -234,16 +234,16 @@ const fs = require('fs');
 const util = require('util');
 
 function debug(...args) {
-  // Use a function like this one when debugging inside an AsyncHooks callback
+  // Use a function like this one when debugging inside an AsyncHook callback
   fs.writeFileSync('log.out', `${util.format(...args)}\n`, { flag: 'a' });
 }
 ```
 
 If an asynchronous operation is needed for logging, it is possible to keep
 track of what caused the asynchronous operation using the information
-provided by AsyncHooks itself. The logging should then be skipped when
-it was the logging itself that caused AsyncHooks callback to call. By
-doing this the otherwise infinite recursion is broken.
+provided by `AsyncHook` itself. The logging should then be skipped when
+it was the logging itself that caused the `AsyncHook` callback to be called. By
+doing this, the otherwise infinite recursion is broken.
 
 ## Class: `AsyncHook`
 
@@ -329,6 +329,8 @@ The `type` is a string identifying the type of resource that caused
 `init` to be called. Generally, it will correspond to the name of the
 resource's constructor.
 
+Valid values are:
+
 ```text
 FSEVENTWRAP, FSREQCALLBACK, GETADDRINFOREQWRAP, GETNAMEINFOREQWRAP, HTTPINCOMINGMESSAGE,
 HTTPCLIENTREQUEST, JSSTREAM, PIPECONNECTWRAP, PIPEWRAP, PROCESSWRAP, QUERYWRAP,
@@ -336,6 +338,9 @@ SHUTDOWNWRAP, SIGNALWRAP, STATWATCHER, TCPCONNECTWRAP, TCPSERVERWRAP, TCPWRAP,
 TTYWRAP, UDPSENDWRAP, UDPWRAP, WRITEWRAP, ZLIB, SSLCONNECTION, PBKDF2REQUEST,
 RANDOMBYTESREQUEST, TLSWRAP, Microtask, Timeout, Immediate, TickObject
 ```
+
+These values can change in any Node.js release. Furthermore users of [`AsyncResource`][]
+likely provide other values.
 
 There is also the `PROMISE` resource type, which is used to track `Promise`
 instances and asynchronous work scheduled by them.
@@ -350,8 +355,8 @@ listening to the hooks.
 
 `triggerAsyncId` is the `asyncId` of the resource that caused (or "triggered")
 the new resource to initialize and that caused `init` to call. This is different
-from `async_hooks.executionAsyncId()` that only shows *when* a resource was
-created, while `triggerAsyncId` shows *why* a resource was created.
+from `async_hooks.executionAsyncId()` that only shows _when_ a resource was
+created, while `triggerAsyncId` shows _why_ a resource was created.
 
 The following is a simple demonstration of `triggerAsyncId`:
 
@@ -428,6 +433,9 @@ callback to `listen()` will look like. The output formatting is slightly more
 elaborate to make calling context easier to see.
 
 ```js
+const async_hooks = require('async_hooks');
+const fs = require('fs');
+const net = require('net');
 const { fd } = process.stdout;
 
 let indent = 0;
@@ -499,13 +507,13 @@ TickObject(6)
 
 The `TCPSERVERWRAP` is not part of this graph, even though it was the reason for
 `console.log()` being called. This is because binding to a port without a host
-name is a *synchronous* operation, but to maintain a completely asynchronous
+name is a _synchronous_ operation, but to maintain a completely asynchronous
 API the user's callback is placed in a `process.nextTick()`. Which is why
 `TickObject` is present in the output and is a 'parent' for `.listen()`
 callback.
 
-The graph only shows *when* a resource was created, not *why*, so to track
-the *why* use `triggerAsyncId`. Which can be represented with the following
+The graph only shows _when_ a resource was created, not _why_, so to track
+the _why_ use `triggerAsyncId`. Which can be represented with the following
 graph:
 
 ```console
@@ -545,7 +553,7 @@ it only once.
 Called immediately after the callback specified in `before` is completed.
 
 If an uncaught exception occurs during execution of the callback, then `after`
-will run *after* the `'uncaughtException'` event is emitted or a `domain`'s
+will run _after_ the `'uncaughtException'` event is emitted or a `domain`'s
 handler runs.
 
 #### `destroy(asyncId)`
@@ -758,6 +766,18 @@ const server = net.createServer((conn) => {
 Promise contexts may not get valid `triggerAsyncId`s by default. See
 the section on [promise execution tracking][].
 
+### `async_hooks.asyncWrapProviders`
+
+<!-- YAML
+added: v16.14.0
+-->
+
+* Returns: A map of provider types to the corresponding numeric id.
+  This map contains all the event types that might be emitted by the `async_hooks.init()` event.
+
+This feature suppresses the deprecated usage of `process.binding('async_wrap').Providers`.
+See: [DEP0111][]
+
 ## Promise execution tracking
 
 By default, promise executions are not assigned `asyncId`s due to the relatively
@@ -804,7 +824,7 @@ Promise.resolve(1729).then(() => {
 ```
 
 ```cjs
-const { createHook, exectionAsyncId, triggerAsyncId } = require('async_hooks');
+const { createHook, executionAsyncId, triggerAsyncId } = require('async_hooks');
 
 createHook({ init() {} }).enable(); // forces PromiseHooks to be enabled.
 Promise.resolve(1729).then(() => {
@@ -841,6 +861,7 @@ The documentation for this class has moved [`AsyncResource`][].
 
 The documentation for this class has moved [`AsyncLocalStorage`][].
 
+[DEP0111]: deprecations.md#dep0111-processbinding
 [Hook Callbacks]: #hook-callbacks
 [PromiseHooks]: https://docs.google.com/document/d/1rda3yKGHimKIhg5YeoAmCOtyURgsbTH_qaYR79FELlk/edit
 [`AsyncLocalStorage`]: async_context.md#class-asynclocalstorage

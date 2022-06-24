@@ -110,8 +110,8 @@ our %config = (
   sourcedir => ".",
   target => "darwin64-arm64-cc",
   tdirs => [ "ossl_shim" ],
-  version => "1.1.1l+quic",
-  version_num => "0x101010cfL",
+  version => "1.1.1o+quic",
+  version_num => "0x101010ffL",
 );
 
 our %target = (

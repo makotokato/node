@@ -40,9 +40,13 @@ The stability indices are as follows:
 
 <!-- separator -->
 
-> Stability: 3 - Legacy. The feature is no longer recommended for use. While it
-> likely will not be removed, and is still covered by semantic-versioning
-> guarantees, use of the feature should be avoided.
+> Stability 3 - Legacy. Although this feature is unlikely to be removed and is
+> still covered by semantic-versioning guarantees, it is no longer actively
+> maintained, and other alternatives are available.
+
+Features are marked as legacy rather than being deprecated if their use does no
+harm, and they are widely relied upon within the npm ecosystem. Bugs found in
+legacy features are unlikely to be fixed.
 
 Use caution when making use of Experimental features, particularly within
 modules. Users may not be aware that experimental features are being used.
@@ -51,11 +55,13 @@ modifications occur. To avoid surprises, use of an Experimental feature may need
 a command-line flag. Experimental features may also emit a [warning][].
 
 ## Stability overview
+
 <!-- STABILITY_OVERVIEW_SLOT_BEGIN -->
 
 <!-- STABILITY_OVERVIEW_SLOT_END -->
 
 ## JSON output
+
 <!-- YAML
 added: v0.6.12
 -->

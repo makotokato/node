@@ -6,9 +6,10 @@
 
 <!-- source_link=lib/cluster.js -->
 
-A single instance of Node.js runs in a single thread. To take advantage of
-multi-core systems, the user will sometimes want to launch a cluster of Node.js
-processes to handle the load.
+Clusters of Node.js processes can be used to run multiple instances of Node.js
+that can distribute workloads among their application threads. When process
+isolation is not needed, use the [`worker_threads`][] module instead, which
+allows running multiple application threads within a single Node.js instance.
 
 The cluster module allows easy creation of child processes that all share
 server ports.
@@ -97,7 +98,7 @@ handles back and forth.
 The cluster module supports two methods of distributing incoming
 connections.
 
-The first one (and the default one on all platforms except Windows),
+The first one (and the default one on all platforms except Windows)
 is the round-robin approach, where the primary process listens on a
 port, accepts new connections and distributes them across the workers
 in a round-robin fashion, with some built-in smarts to avoid
@@ -146,6 +147,7 @@ Although a primary use case for the `cluster` module is networking, it can
 also be used for other use cases requiring worker processes.
 
 ## Class: `Worker`
+
 <!-- YAML
 added: v0.7.0
 -->
@@ -157,6 +159,7 @@ In the primary it can be obtained using `cluster.workers`. In a worker
 it can be obtained using `cluster.worker`.
 
 ### Event: `'disconnect'`
+
 <!-- YAML
 added: v0.7.7
 -->
@@ -170,6 +173,7 @@ cluster.fork().on('disconnect', () => {
 ```
 
 ### Event: `'error'`
+
 <!-- YAML
 added: v0.7.3
 -->
@@ -179,6 +183,7 @@ This event is the same as the one provided by [`child_process.fork()`][].
 Within a worker, `process.on('error')` may also be used.
 
 ### Event: `'exit'`
+
 <!-- YAML
 added: v0.11.2
 -->
@@ -220,6 +225,7 @@ worker.on('exit', (code, signal) => {
 ```
 
 ### Event: `'listening'`
+
 <!-- YAML
 added: v0.7.0
 -->
@@ -247,6 +253,7 @@ cluster.fork().on('listening', (address) => {
 It is not emitted in the worker.
 
 ### Event: `'message'`
+
 <!-- YAML
 added: v0.7.0
 -->
@@ -351,6 +358,7 @@ if (cluster.isPrimary) {
 ```
 
 ### Event: `'online'`
+
 <!-- YAML
 added: v0.7.0
 -->
@@ -366,6 +374,7 @@ cluster.fork().on('online', () => {
 It is not emitted in the worker.
 
 ### `worker.disconnect()`
+
 <!-- YAML
 added: v0.7.7
 changes:
@@ -390,7 +399,7 @@ connections will be allowed to close as usual. When no more connections exist,
 see [`server.close()`][], the IPC channel to the worker will close allowing it
 to die gracefully.
 
-The above applies *only* to server connections, client connections are not
+The above applies _only_ to server connections, client connections are not
 automatically closed by workers, and disconnect does not wait for them to close
 before exiting.
 
@@ -436,6 +445,7 @@ if (cluster.isPrimary) {
 ```
 
 ### `worker.exitedAfterDisconnect`
+
 <!-- YAML
 added: v6.0.0
 -->
@@ -462,6 +472,7 @@ worker.kill();
 ```
 
 ### `worker.id`
+
 <!-- YAML
 added: v0.8.0
 -->
@@ -475,6 +486,7 @@ While a worker is alive, this is the key that indexes it in
 `cluster.workers`.
 
 ### `worker.isConnected()`
+
 <!-- YAML
 added: v0.11.14
 -->
@@ -484,6 +496,7 @@ IPC channel, `false` otherwise. A worker is connected to its primary after it
 has been created. It is disconnected after the `'disconnect'` event is emitted.
 
 ### `worker.isDead()`
+
 <!-- YAML
 added: v0.11.14
 -->
@@ -556,6 +569,7 @@ if (cluster.isPrimary) {
 ```
 
 ### `worker.kill([signal])`
+
 <!-- YAML
 added: v0.9.12
 -->
@@ -581,6 +595,7 @@ In a worker, `process.kill()` exists, but it is not this function;
 it is [`kill()`][].
 
 ### `worker.process`
+
 <!-- YAML
 added: v0.7.0
 -->
@@ -598,6 +613,7 @@ on `process` and `.exitedAfterDisconnect` is not `true`. This protects against
 accidental disconnection.
 
 ### `worker.send(message[, sendHandle[, options]][, callback])`
+
 <!-- YAML
 added: v0.7.0
 changes:
@@ -619,10 +635,10 @@ changes:
 
 Send a message to a worker or primary, optionally with a handle.
 
-In the primary this sends a message to a specific worker. It is identical to
+In the primary, this sends a message to a specific worker. It is identical to
 [`ChildProcess.send()`][].
 
-In a worker this sends a message to the primary. It is identical to
+In a worker, this sends a message to the primary. It is identical to
 `process.send()`.
 
 This example will echo back all messages from the primary:
@@ -640,6 +656,7 @@ if (cluster.isPrimary) {
 ```
 
 ## Event: `'disconnect'`
+
 <!-- YAML
 added: v0.7.9
 -->
@@ -661,6 +678,7 @@ cluster.on('disconnect', (worker) => {
 ```
 
 ## Event: `'exit'`
+
 <!-- YAML
 added: v0.7.9
 -->
@@ -685,6 +703,7 @@ cluster.on('exit', (worker, code, signal) => {
 See [`child_process` event: `'exit'`][].
 
 ## Event: `'fork'`
+
 <!-- YAML
 added: v0.7.0
 -->
@@ -713,6 +732,7 @@ cluster.on('exit', (worker, code, signal) => {
 ```
 
 ## Event: `'listening'`
+
 <!-- YAML
 added: v0.7.0
 -->
@@ -721,7 +741,7 @@ added: v0.7.0
 * `address` {Object}
 
 After calling `listen()` from a worker, when the `'listening'` event is emitted
-on the server a `'listening'` event will also be emitted on `cluster` in the
+on the server, a `'listening'` event will also be emitted on `cluster` in the
 primary.
 
 The event handler is executed with two arguments, the `worker` contains the
@@ -741,9 +761,10 @@ The `addressType` is one of:
 * `4` (TCPv4)
 * `6` (TCPv6)
 * `-1` (Unix domain socket)
-* `'udp4'` or `'udp6'` (UDP v4 or v6)
+* `'udp4'` or `'udp6'` (UDPv4 or UDPv6)
 
 ## Event: `'message'`
+
 <!-- YAML
 added: v2.5.0
 changes:
@@ -761,6 +782,7 @@ Emitted when the cluster primary receives a message from any worker.
 See [`child_process` event: `'message'`][].
 
 ## Event: `'online'`
+
 <!-- YAML
 added: v0.7.0
 -->
@@ -779,6 +801,7 @@ cluster.on('online', (worker) => {
 ```
 
 ## Event: `'setup'`
+
 <!-- YAML
 added: v0.7.1
 -->
@@ -794,6 +817,7 @@ The `settings` object is the `cluster.settings` object at the time
 If accuracy is important, use `cluster.settings`.
 
 ## `cluster.disconnect([callback])`
+
 <!-- YAML
 added: v0.7.7
 -->
@@ -812,6 +836,7 @@ finished.
 This can only be called from the primary process.
 
 ## `cluster.fork([env])`
+
 <!-- YAML
 added: v0.6.0
 -->
@@ -824,15 +849,16 @@ Spawn a new worker process.
 This can only be called from the primary process.
 
 ## `cluster.isMaster`
+
 <!-- YAML
 added: v0.8.1
 deprecated: v16.0.0
 -->
 
 Deprecated alias for [`cluster.isPrimary`][].
-details.
 
 ## `cluster.isPrimary`
+
 <!-- YAML
 added: v16.0.0
 -->
@@ -844,6 +870,7 @@ by the `process.env.NODE_UNIQUE_ID`. If `process.env.NODE_UNIQUE_ID` is
 undefined, then `isPrimary` is `true`.
 
 ## `cluster.isWorker`
+
 <!-- YAML
 added: v0.6.0
 -->
@@ -853,6 +880,7 @@ added: v0.6.0
 True if the process is not a primary (it is the negation of `cluster.isPrimary`).
 
 ## `cluster.schedulingPolicy`
+
 <!-- YAML
 added: v0.11.2
 -->
@@ -871,6 +899,7 @@ distribute IOCP handles without incurring a large performance hit.
 values are `'rr'` and `'none'`.
 
 ## `cluster.settings`
+
 <!-- YAML
 added: v0.7.1
 changes:
@@ -894,10 +923,10 @@ changes:
 -->
 
 * {Object}
-  * `execArgv` {string[]} List of string arguments passed to the Node.js
+  * `execArgv` {string\[]} List of string arguments passed to the Node.js
     executable. **Default:** `process.execArgv`.
   * `exec` {string} File path to worker file. **Default:** `process.argv[1]`.
-  * `args` {string[]} String arguments passed to worker.
+  * `args` {string\[]} String arguments passed to worker.
     **Default:** `process.argv.slice(2)`.
   * `cwd` {string} Current working directory of the worker process. **Default:**
     `undefined` (inherits from parent process).
@@ -925,6 +954,7 @@ contain the settings, including the default values.
 This object is not intended to be changed or set manually.
 
 ## `cluster.setupMaster([settings])`
+
 <!-- YAML
 added: v0.7.1
 deprecated: v16.0.0
@@ -937,6 +967,7 @@ changes:
 Deprecated alias for [`.setupPrimary()`][].
 
 ## `cluster.setupPrimary([settings])`
+
 <!-- YAML
 added: v16.0.0
 -->
@@ -990,6 +1021,7 @@ cluster.fork(); // http worker
 This can only be called from the primary process.
 
 ## `cluster.worker`
+
 <!-- YAML
 added: v0.7.0
 -->
@@ -1023,55 +1055,36 @@ if (cluster.isPrimary) {
 ```
 
 ## `cluster.workers`
+
 <!-- YAML
 added: v0.7.0
 -->
 
 * {Object}
 
-A hash that stores the active worker objects, keyed by `id` field. Makes it
+A hash that stores the active worker objects, keyed by `id` field. This makes it
 easy to loop through all the workers. It is only available in the primary
 process.
 
 A worker is removed from `cluster.workers` after the worker has disconnected
 _and_ exited. The order between these two events cannot be determined in
 advance. However, it is guaranteed that the removal from the `cluster.workers`
-list happens before last `'disconnect'` or `'exit'` event is emitted.
+list happens before the last `'disconnect'` or `'exit'` event is emitted.
 
 ```mjs
 import cluster from 'cluster';
 
-// Go through all workers
-function eachWorker(callback) {
-  for (const id in cluster.workers) {
-    callback(cluster.workers[id]);
-  }
-}
-eachWorker((worker) => {
+for (const worker of Object.values(cluster.workers)) {
   worker.send('big announcement to all workers');
-});
+}
 ```
 
 ```cjs
 const cluster = require('cluster');
 
-// Go through all workers
-function eachWorker(callback) {
-  for (const id in cluster.workers) {
-    callback(cluster.workers[id]);
-  }
-}
-eachWorker((worker) => {
+for (const worker of Object.values(cluster.workers)) {
   worker.send('big announcement to all workers');
-});
-```
-
-Using the worker's unique id is the easiest way to locate the worker.
-
-```js
-socket.on('data', (id) => {
-  const worker = cluster.workers[id];
-});
+}
 ```
 
 [Advanced serialization for `child_process`]: child_process.md#advanced-serialization
@@ -1089,3 +1102,4 @@ socket.on('data', (id) => {
 [`process` event: `'message'`]: process.md#event-message
 [`server.close()`]: net.md#event-close
 [`worker.exitedAfterDisconnect`]: #workerexitedafterdisconnect
+[`worker_threads`]: worker_threads.md

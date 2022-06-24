@@ -24,6 +24,7 @@ using v8::FunctionCallbackInfo;
 using v8::FunctionTemplate;
 using v8::Int32;
 using v8::Just;
+using v8::JustVoid;
 using v8::Local;
 using v8::Maybe;
 using v8::Nothing;
@@ -81,6 +82,22 @@ void ECDH::Initialize(Environment* env, Local<Object> target) {
 
   NODE_DEFINE_CONSTANT(target, OPENSSL_EC_NAMED_CURVE);
   NODE_DEFINE_CONSTANT(target, OPENSSL_EC_EXPLICIT_CURVE);
+}
+
+void ECDH::RegisterExternalReferences(ExternalReferenceRegistry* registry) {
+  registry->Register(New);
+  registry->Register(GenerateKeys);
+  registry->Register(ComputeSecret);
+  registry->Register(GetPublicKey);
+  registry->Register(GetPrivateKey);
+  registry->Register(SetPublicKey);
+  registry->Register(SetPrivateKey);
+  registry->Register(ECDH::ConvertKey);
+  registry->Register(ECDH::GetCurves);
+
+  ECDHBitsJob::RegisterExternalReferences(registry);
+  ECKeyPairGenJob::RegisterExternalReferences(registry);
+  ECKeyExportJob::RegisterExternalReferences(registry);
 }
 
 void ECDH::GetCurves(const FunctionCallbackInfo<Value>& args) {
@@ -695,7 +712,7 @@ WebCryptoKeyExportStatus ECKeyExportTraits::DoExport(
   }
 }
 
-Maybe<bool> ExportJWKEcKey(
+Maybe<void> ExportJWKEcKey(
     Environment* env,
     std::shared_ptr<KeyObjectData> key,
     Local<Object> target) {
@@ -716,13 +733,17 @@ Maybe<bool> ExportJWKEcKey(
   BignumPointer x(BN_new());
   BignumPointer y(BN_new());
 
-  EC_POINT_get_affine_coordinates(group, pub, x.get(), y.get(), nullptr);
+  if (!EC_POINT_get_affine_coordinates(group, pub, x.get(), y.get(), nullptr)) {
+    ThrowCryptoError(env, ERR_get_error(),
+                     "Failed to get elliptic-curve point coordinates");
+    return Nothing<void>();
+  }
 
   if (target->Set(
           env->context(),
           env->jwk_kty_string(),
           env->jwk_ec_string()).IsNothing()) {
-    return Nothing<bool>();
+    return Nothing<void>();
   }
 
   if (SetEncodedValue(
@@ -737,7 +758,7 @@ Maybe<bool> ExportJWKEcKey(
           env->jwk_y_string(),
           y.get(),
           degree_bytes).IsNothing()) {
-    return Nothing<bool>();
+    return Nothing<void>();
   }
 
   Local<String> crv_name;
@@ -758,14 +779,14 @@ Maybe<bool> ExportJWKEcKey(
     default: {
       THROW_ERR_CRYPTO_JWK_UNSUPPORTED_CURVE(
           env, "Unsupported JWK EC curve: %s.", OBJ_nid2sn(nid));
-      return Nothing<bool>();
+      return Nothing<void>();
     }
   }
   if (target->Set(
       env->context(),
       env->jwk_crv_string(),
       crv_name).IsNothing()) {
-    return Nothing<bool>();
+    return Nothing<void>();
   }
 
   if (key->GetKeyType() == kKeyTypePrivate) {
@@ -775,10 +796,10 @@ Maybe<bool> ExportJWKEcKey(
       target,
       env->jwk_d_string(),
       pvt,
-      degree_bytes);
+      degree_bytes).IsJust() ? JustVoid() : Nothing<void>();
   }
 
-  return Just(true);
+  return JustVoid();
 }
 
 Maybe<bool> ExportJWKEdKey(

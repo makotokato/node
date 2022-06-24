@@ -15,6 +15,7 @@ const util = require('util');
 ```
 
 ## `util.callbackify(original)`
+
 <!-- YAML
 added: v8.2.0
 -->
@@ -66,11 +67,12 @@ const callbackFunction = util.callbackify(fn);
 callbackFunction((err, ret) => {
   // When the Promise was rejected with `null` it is wrapped with an Error and
   // the original value is stored in `reason`.
-  err && err.hasOwnProperty('reason') && err.reason === null;  // true
+  err && Object.hasOwn(err, 'reason') && err.reason === null;  // true
 });
 ```
 
 ## `util.debuglog(section[, callback])`
+
 <!-- YAML
 added: v0.11.3
 -->
@@ -137,6 +139,7 @@ let debuglog = util.debuglog('internals', (debug) => {
 ```
 
 ### `debuglog().enabled`
+
 <!-- YAML
 added: v14.9.0
 -->
@@ -165,6 +168,7 @@ hello from foo [123]
 ```
 
 ## `util.debug(section)`
+
 <!-- YAML
 added: v14.9.0
 -->
@@ -173,6 +177,7 @@ Alias for `util.debuglog`. Usage allows for readability of that doesn't imply
 logging when only using `util.debuglog().enabled`.
 
 ## `util.deprecate(fn, msg[, code])`
+
 <!-- YAML
 added: v0.8.0
 changes:
@@ -218,7 +223,7 @@ fn2(); // Does not emit a deprecation warning because it has the same code
 ```
 
 If either the `--no-deprecation` or `--no-warnings` command-line flags are
-used, or if the `process.noDeprecation` property is set to `true` *prior* to
+used, or if the `process.noDeprecation` property is set to `true` _prior_ to
 the first deprecation warning, the `util.deprecate()` method does nothing.
 
 If the `--trace-deprecation` or `--trace-warnings` command-line flags are set,
@@ -235,6 +240,7 @@ property take precedence over `--trace-deprecation` and
 `process.traceDeprecation`.
 
 ## `util.format(format[, ...args])`
+
 <!-- YAML
 added: v0.5.3
 changes:
@@ -340,6 +346,7 @@ Some input values can have a significant performance overhead that can block the
 event loop. Use this function with care and never in a hot code path.
 
 ## `util.formatWithOptions(inspectOptions, format[, ...args])`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -358,6 +365,7 @@ util.formatWithOptions({ colors: true }, 'See object %O', { foo: 42 });
 ```
 
 ## `util.getSystemErrorName(err)`
+
 <!-- YAML
 added: v9.7.0
 -->
@@ -377,6 +385,7 @@ fs.access('file/that/does/not/exist', (err) => {
 ```
 
 ## `util.getSystemErrorMap()`
+
 <!-- YAML
 added: v16.0.0
 -->
@@ -396,6 +405,7 @@ fs.access('file/that/does/not/exist', (err) => {
 ```
 
 ## `util.inherits(constructor, superConstructor)`
+
 <!-- YAML
 added: v0.3.0
 changes:
@@ -467,10 +477,15 @@ stream.write('With ES6');
 ```
 
 ## `util.inspect(object[, options])`
+
 ## `util.inspect(object[, showHidden[, depth[, colors]]])`
+
 <!-- YAML
 added: v0.3.0
 changes:
+  - version: v16.14.0
+    pr-url: https://github.com/nodejs/node/pull/41003
+    description: The `numericSeparator` option is supported now.
   - version:
     - v14.6.0
     - v12.19.0
@@ -562,7 +577,7 @@ changes:
     codes. Colors are customizable. See [Customizing `util.inspect` colors][].
     **Default:** `false`.
   * `customInspect` {boolean} If `false`,
-    `[util.inspect.custom](depth, opts)` functions are not invoked.
+    `[util.inspect.custom](depth, opts, inspect)` functions are not invoked.
     **Default:** `true`.
   * `showProxy` {boolean} If `true`, `Proxy` inspection includes
     the [`target` and `handler`][] objects. **Default:** `false`.
@@ -591,6 +606,9 @@ changes:
     to `'get'`, only getters without a corresponding setter are inspected. If
     set to `'set'`, only getters with a corresponding setter are inspected.
     This might cause side effects depending on the getter function.
+    **Default:** `false`.
+  * `numericSeparator` {boolean} If set to `true`, an underscore is used to
+    separate every three digits in all bigints and numbers.
     **Default:** `false`.
 * Returns: {string} The representation of `object`.
 
@@ -740,6 +758,21 @@ assert.strict.equal(
 );
 ```
 
+The `numericSeparator` option adds an underscore every three digits to all
+numbers.
+
+```js
+const { inspect } = require('util');
+
+const thousand = 1_000;
+const million = 1_000_000;
+const bigNumber = 123_456_789n;
+const bigDecimal = 1_234.123_45;
+
+console.log(thousand, million, bigNumber, bigDecimal);
+// 1_000 1_000_000 123_456_789n 1_234.123_45
+```
+
 `util.inspect()` is a synchronous method intended for debugging. Its maximum
 output length is approximately 128 MB. Inputs that result in longer output will
 be truncated.
@@ -839,10 +872,18 @@ ignored, if not supported.
 
 <!-- type=misc -->
 
+<!-- YAML
+added: v0.1.97
+changes:
+  - version: v16.14.0
+    pr-url: https://github.com/nodejs/node/pull/41019
+    description: The inspect argument is added for more interoperability.
+-->
+
 Objects may also define their own
-[`[util.inspect.custom](depth, opts)`][util.inspect.custom] function,
+[`[util.inspect.custom](depth, opts, inspect)`][util.inspect.custom] function,
 which `util.inspect()` will invoke and use the result of when inspecting
-the object:
+the object.
 
 ```js
 const util = require('util');
@@ -852,7 +893,7 @@ class Box {
     this.value = value;
   }
 
-  [util.inspect.custom](depth, options) {
+  [util.inspect.custom](depth, options, inspect) {
     if (depth < 0) {
       return options.stylize('[Box]', 'special');
     }
@@ -863,8 +904,8 @@ class Box {
 
     // Five space padding because that's the size of "Box< ".
     const padding = ' '.repeat(5);
-    const inner = util.inspect(this.value, newOptions)
-                      .replace(/\n/g, `\n${padding}`);
+    const inner = inspect(this.value, newOptions)
+                  .replace(/\n/g, `\n${padding}`);
     return `${options.stylize('Box', 'special')}< ${inner} >`;
   }
 }
@@ -875,9 +916,9 @@ util.inspect(box);
 // Returns: "Box< true >"
 ```
 
-Custom `[util.inspect.custom](depth, opts)` functions typically return a string
-but may return a value of any type that will be formatted accordingly by
-`util.inspect()`.
+Custom `[util.inspect.custom](depth, opts, inspect)` functions typically return
+a string but may return a value of any type that will be formatted accordingly
+by `util.inspect()`.
 
 ```js
 const util = require('util');
@@ -892,6 +933,7 @@ util.inspect(obj);
 ```
 
 ### `util.inspect.custom`
+
 <!-- YAML
 added: v6.6.0
 changes:
@@ -906,8 +948,13 @@ In addition to being accessible through `util.inspect.custom`, this
 symbol is [registered globally][global symbol registry] and can be
 accessed in any environment as `Symbol.for('nodejs.util.inspect.custom')`.
 
+Using this allows code to be written in a portable fashion, so that the custom
+inspect function is used in an Node.js environment and ignored in the browser.
+The `util.inspect()` function itself is passed as third argument to the custom
+inspect function to allow further portability.
+
 ```js
-const inspect = Symbol.for('nodejs.util.inspect.custom');
+const customInspectSymbol = Symbol.for('nodejs.util.inspect.custom');
 
 class Password {
   constructor(value) {
@@ -918,7 +965,7 @@ class Password {
     return 'xxxxxxxx';
   }
 
-  [inspect]() {
+  [customInspectSymbol](depth, inspectOptions, inspect) {
     return `Password <${this.toString()}>`;
   }
 }
@@ -931,6 +978,7 @@ console.log(password);
 See [Custom inspection functions on Objects][] for more details.
 
 ### `util.inspect.defaultOptions`
+
 <!-- YAML
 added: v6.4.0
 -->
@@ -951,6 +999,7 @@ console.log(arr); // logs the full array
 ```
 
 ## `util.isDeepStrictEqual(val1, val2)`
+
 <!-- YAML
 added: v9.0.0
 -->
@@ -966,6 +1015,7 @@ See [`assert.deepStrictEqual()`][] for more information about deep strict
 equality.
 
 ## `util.promisify(original)`
+
 <!-- YAML
 added: v8.0.0
 -->
@@ -1079,6 +1129,7 @@ If `promisify.custom` is defined but is not a function, `promisify()` will
 throw an error.
 
 ### `util.promisify.custom`
+
 <!-- YAML
 added: v8.0.0
 changes:
@@ -1110,6 +1161,7 @@ doSomething[kCustomPromisifiedSymbol] = (foo) => {
 ```
 
 ## `util.stripVTControlCharacters(str)`
+
 <!-- YAML
 added: v16.11.0
 -->
@@ -1125,6 +1177,7 @@ console.log(util.stripVTControlCharacters('\u001B[4mvalue\u001B[0m'));
 ```
 
 ## Class: `util.TextDecoder`
+
 <!-- YAML
 added: v8.3.0
 -->
@@ -1132,13 +1185,9 @@ added: v8.3.0
 An implementation of the [WHATWG Encoding Standard][] `TextDecoder` API.
 
 ```js
-const decoder = new TextDecoder('shift_jis');
-let string = '';
-let buffer;
-while (buffer = getNextChunkSomehow()) {
-  string += decoder.decode(buffer, { stream: true });
-}
-string += decoder.decode(); // end-of-stream
+const decoder = new TextDecoder();
+const u8arr = new Uint8Array([72, 101, 108, 108, 111]);
+console.log(decoder.decode(u8arr)); // Hello
 ```
 
 ### WHATWG supported encodings
@@ -1152,47 +1201,47 @@ Different Node.js build configurations support different sets of encodings.
 
 #### Encodings supported by default (with full ICU data)
 
-| Encoding           | Aliases                          |
-| -----------------  | -------------------------------- |
-| `'ibm866'`         | `'866'`, `'cp866'`, `'csibm866'` |
-| `'iso-8859-2'`     | `'csisolatin2'`, `'iso-ir-101'`, `'iso8859-2'`, `'iso88592'`, `'iso_8859-2'`, `'iso_8859-2:1987'`, `'l2'`, `'latin2'`  |
-| `'iso-8859-3'`     | `'csisolatin3'`, `'iso-ir-109'`, `'iso8859-3'`, `'iso88593'`, `'iso_8859-3'`, `'iso_8859-3:1988'`, `'l3'`, `'latin3'`  |
-| `'iso-8859-4'`     | `'csisolatin4'`, `'iso-ir-110'`, `'iso8859-4'`, `'iso88594'`, `'iso_8859-4'`, `'iso_8859-4:1988'`, `'l4'`, `'latin4'`  |
-| `'iso-8859-5'`     | `'csisolatincyrillic'`, `'cyrillic'`, `'iso-ir-144'`, `'iso8859-5'`, `'iso88595'`, `'iso_8859-5'`, `'iso_8859-5:1988'` |
-| `'iso-8859-6'`     | `'arabic'`, `'asmo-708'`, `'csiso88596e'`, `'csiso88596i'`, `'csisolatinarabic'`, `'ecma-114'`, `'iso-8859-6-e'`, `'iso-8859-6-i'`, `'iso-ir-127'`, `'iso8859-6'`, `'iso88596'`, `'iso_8859-6'`, `'iso_8859-6:1987'` |
-| `'iso-8859-7'`     | `'csisolatingreek'`, `'ecma-118'`, `'elot_928'`, `'greek'`, `'greek8'`, `'iso-ir-126'`, `'iso8859-7'`, `'iso88597'`, `'iso_8859-7'`, `'iso_8859-7:1987'`, `'sun_eu_greek'` |
-| `'iso-8859-8'`     | `'csiso88598e'`, `'csisolatinhebrew'`, `'hebrew'`, `'iso-8859-8-e'`, `'iso-ir-138'`, `'iso8859-8'`, `'iso88598'`, `'iso_8859-8'`, `'iso_8859-8:1988'`, `'visual'` |
-| `'iso-8859-8-i'`   | `'csiso88598i'`, `'logical'` |
-| `'iso-8859-10'`    | `'csisolatin6'`, `'iso-ir-157'`, `'iso8859-10'`, `'iso885910'`, `'l6'`, `'latin6'` |
-| `'iso-8859-13'`    | `'iso8859-13'`, `'iso885913'` |
-| `'iso-8859-14'`    | `'iso8859-14'`, `'iso885914'` |
-| `'iso-8859-15'`    | `'csisolatin9'`, `'iso8859-15'`, `'iso885915'`, `'iso_8859-15'`, `'l9'` |
-| `'koi8-r'`         | `'cskoi8r'`, `'koi'`, `'koi8'`, `'koi8_r'` |
-| `'koi8-u'`         | `'koi8-ru'` |
-| `'macintosh'`      | `'csmacintosh'`, `'mac'`, `'x-mac-roman'` |
-| `'windows-874'`    | `'dos-874'`, `'iso-8859-11'`, `'iso8859-11'`, `'iso885911'`, `'tis-620'` |
-| `'windows-1250'`   | `'cp1250'`, `'x-cp1250'` |
-| `'windows-1251'`   | `'cp1251'`, `'x-cp1251'` |
+| Encoding           | Aliases                                                                                                                                                                                                                             |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `'ibm866'`         | `'866'`, `'cp866'`, `'csibm866'`                                                                                                                                                                                                    |
+| `'iso-8859-2'`     | `'csisolatin2'`, `'iso-ir-101'`, `'iso8859-2'`, `'iso88592'`, `'iso_8859-2'`, `'iso_8859-2:1987'`, `'l2'`, `'latin2'`                                                                                                               |
+| `'iso-8859-3'`     | `'csisolatin3'`, `'iso-ir-109'`, `'iso8859-3'`, `'iso88593'`, `'iso_8859-3'`, `'iso_8859-3:1988'`, `'l3'`, `'latin3'`                                                                                                               |
+| `'iso-8859-4'`     | `'csisolatin4'`, `'iso-ir-110'`, `'iso8859-4'`, `'iso88594'`, `'iso_8859-4'`, `'iso_8859-4:1988'`, `'l4'`, `'latin4'`                                                                                                               |
+| `'iso-8859-5'`     | `'csisolatincyrillic'`, `'cyrillic'`, `'iso-ir-144'`, `'iso8859-5'`, `'iso88595'`, `'iso_8859-5'`, `'iso_8859-5:1988'`                                                                                                              |
+| `'iso-8859-6'`     | `'arabic'`, `'asmo-708'`, `'csiso88596e'`, `'csiso88596i'`, `'csisolatinarabic'`, `'ecma-114'`, `'iso-8859-6-e'`, `'iso-8859-6-i'`, `'iso-ir-127'`, `'iso8859-6'`, `'iso88596'`, `'iso_8859-6'`, `'iso_8859-6:1987'`                |
+| `'iso-8859-7'`     | `'csisolatingreek'`, `'ecma-118'`, `'elot_928'`, `'greek'`, `'greek8'`, `'iso-ir-126'`, `'iso8859-7'`, `'iso88597'`, `'iso_8859-7'`, `'iso_8859-7:1987'`, `'sun_eu_greek'`                                                          |
+| `'iso-8859-8'`     | `'csiso88598e'`, `'csisolatinhebrew'`, `'hebrew'`, `'iso-8859-8-e'`, `'iso-ir-138'`, `'iso8859-8'`, `'iso88598'`, `'iso_8859-8'`, `'iso_8859-8:1988'`, `'visual'`                                                                   |
+| `'iso-8859-8-i'`   | `'csiso88598i'`, `'logical'`                                                                                                                                                                                                        |
+| `'iso-8859-10'`    | `'csisolatin6'`, `'iso-ir-157'`, `'iso8859-10'`, `'iso885910'`, `'l6'`, `'latin6'`                                                                                                                                                  |
+| `'iso-8859-13'`    | `'iso8859-13'`, `'iso885913'`                                                                                                                                                                                                       |
+| `'iso-8859-14'`    | `'iso8859-14'`, `'iso885914'`                                                                                                                                                                                                       |
+| `'iso-8859-15'`    | `'csisolatin9'`, `'iso8859-15'`, `'iso885915'`, `'iso_8859-15'`, `'l9'`                                                                                                                                                             |
+| `'koi8-r'`         | `'cskoi8r'`, `'koi'`, `'koi8'`, `'koi8_r'`                                                                                                                                                                                          |
+| `'koi8-u'`         | `'koi8-ru'`                                                                                                                                                                                                                         |
+| `'macintosh'`      | `'csmacintosh'`, `'mac'`, `'x-mac-roman'`                                                                                                                                                                                           |
+| `'windows-874'`    | `'dos-874'`, `'iso-8859-11'`, `'iso8859-11'`, `'iso885911'`, `'tis-620'`                                                                                                                                                            |
+| `'windows-1250'`   | `'cp1250'`, `'x-cp1250'`                                                                                                                                                                                                            |
+| `'windows-1251'`   | `'cp1251'`, `'x-cp1251'`                                                                                                                                                                                                            |
 | `'windows-1252'`   | `'ansi_x3.4-1968'`, `'ascii'`, `'cp1252'`, `'cp819'`, `'csisolatin1'`, `'ibm819'`, `'iso-8859-1'`, `'iso-ir-100'`, `'iso8859-1'`, `'iso88591'`, `'iso_8859-1'`, `'iso_8859-1:1987'`, `'l1'`, `'latin1'`, `'us-ascii'`, `'x-cp1252'` |
-| `'windows-1253'`   | `'cp1253'`, `'x-cp1253'` |
-| `'windows-1254'`   | `'cp1254'`, `'csisolatin5'`, `'iso-8859-9'`, `'iso-ir-148'`, `'iso8859-9'`, `'iso88599'`, `'iso_8859-9'`, `'iso_8859-9:1989'`, `'l5'`, `'latin5'`, `'x-cp1254'` |
-| `'windows-1255'`   | `'cp1255'`, `'x-cp1255'` |
-| `'windows-1256'`   | `'cp1256'`, `'x-cp1256'` |
-| `'windows-1257'`   | `'cp1257'`, `'x-cp1257'` |
-| `'windows-1258'`   | `'cp1258'`, `'x-cp1258'` |
-| `'x-mac-cyrillic'` | `'x-mac-ukrainian'` |
-| `'gbk'`            | `'chinese'`, `'csgb2312'`, `'csiso58gb231280'`, `'gb2312'`, `'gb_2312'`, `'gb_2312-80'`, `'iso-ir-58'`, `'x-gbk'` |
-| `'gb18030'`        | |
-| `'big5'`           | `'big5-hkscs'`, `'cn-big5'`, `'csbig5'`, `'x-x-big5'` |
-| `'euc-jp'`         | `'cseucpkdfmtjapanese'`, `'x-euc-jp'` |
-| `'iso-2022-jp'`    | `'csiso2022jp'` |
-| `'shift_jis'`      | `'csshiftjis'`, `'ms932'`, `'ms_kanji'`, `'shift-jis'`, `'sjis'`, `'windows-31j'`, `'x-sjis'` |
-| `'euc-kr'`         | `'cseuckr'`, `'csksc56011987'`, `'iso-ir-149'`, `'korean'`, `'ks_c_5601-1987'`, `'ks_c_5601-1989'`, `'ksc5601'`, `'ksc_5601'`, `'windows-949'` |
+| `'windows-1253'`   | `'cp1253'`, `'x-cp1253'`                                                                                                                                                                                                            |
+| `'windows-1254'`   | `'cp1254'`, `'csisolatin5'`, `'iso-8859-9'`, `'iso-ir-148'`, `'iso8859-9'`, `'iso88599'`, `'iso_8859-9'`, `'iso_8859-9:1989'`, `'l5'`, `'latin5'`, `'x-cp1254'`                                                                     |
+| `'windows-1255'`   | `'cp1255'`, `'x-cp1255'`                                                                                                                                                                                                            |
+| `'windows-1256'`   | `'cp1256'`, `'x-cp1256'`                                                                                                                                                                                                            |
+| `'windows-1257'`   | `'cp1257'`, `'x-cp1257'`                                                                                                                                                                                                            |
+| `'windows-1258'`   | `'cp1258'`, `'x-cp1258'`                                                                                                                                                                                                            |
+| `'x-mac-cyrillic'` | `'x-mac-ukrainian'`                                                                                                                                                                                                                 |
+| `'gbk'`            | `'chinese'`, `'csgb2312'`, `'csiso58gb231280'`, `'gb2312'`, `'gb_2312'`, `'gb_2312-80'`, `'iso-ir-58'`, `'x-gbk'`                                                                                                                   |
+| `'gb18030'`        |                                                                                                                                                                                                                                     |
+| `'big5'`           | `'big5-hkscs'`, `'cn-big5'`, `'csbig5'`, `'x-x-big5'`                                                                                                                                                                               |
+| `'euc-jp'`         | `'cseucpkdfmtjapanese'`, `'x-euc-jp'`                                                                                                                                                                                               |
+| `'iso-2022-jp'`    | `'csiso2022jp'`                                                                                                                                                                                                                     |
+| `'shift_jis'`      | `'csshiftjis'`, `'ms932'`, `'ms_kanji'`, `'shift-jis'`, `'sjis'`, `'windows-31j'`, `'x-sjis'`                                                                                                                                       |
+| `'euc-kr'`         | `'cseuckr'`, `'csksc56011987'`, `'iso-ir-149'`, `'korean'`, `'ks_c_5601-1987'`, `'ks_c_5601-1989'`, `'ksc5601'`, `'ksc_5601'`, `'windows-949'`                                                                                      |
 
 #### Encodings supported when Node.js is built with the `small-icu` option
 
 | Encoding     | Aliases                         |
-| -----------  | ------------------------------- |
+| ------------ | ------------------------------- |
 | `'utf-8'`    | `'unicode-1-1-utf-8'`, `'utf8'` |
 | `'utf-16le'` | `'utf-16'`                      |
 | `'utf-16be'` |                                 |
@@ -1200,7 +1249,7 @@ Different Node.js build configurations support different sets of encodings.
 #### Encodings supported when ICU is disabled
 
 | Encoding     | Aliases                         |
-| -----------  | ------------------------------- |
+| ------------ | ------------------------------- |
 | `'utf-8'`    | `'unicode-1-1-utf-8'`, `'utf8'` |
 | `'utf-16le'` | `'utf-16'`                      |
 
@@ -1208,6 +1257,7 @@ The `'iso-8859-16'` encoding listed in the [WHATWG Encoding Standard][]
 is not supported.
 
 ### `new TextDecoder([encoding[, options]])`
+
 <!-- YAML
 added: v8.3.0
 changes:
@@ -1223,11 +1273,11 @@ changes:
     This option is not supported when ICU is disabled
     (see [Internationalization][]). **Default:** `false`.
   * `ignoreBOM` {boolean} When `true`, the `TextDecoder` will include the byte
-     order mark in the decoded result. When `false`, the byte order mark will
-     be removed from the output. This option is only used when `encoding` is
-     `'utf-8'`, `'utf-16be'` or `'utf-16le'`. **Default:** `false`.
+    order mark in the decoded result. When `false`, the byte order mark will
+    be removed from the output. This option is only used when `encoding` is
+    `'utf-8'`, `'utf-16be'` or `'utf-16le'`. **Default:** `false`.
 
-Creates an new `TextDecoder` instance. The `encoding` may specify one of the
+Creates a new `TextDecoder` instance. The `encoding` may specify one of the
 supported encodings or an alias.
 
 The `TextDecoder` class is also available on the global object.
@@ -1269,6 +1319,7 @@ The value will be `true` if the decoding result will include the byte order
 mark.
 
 ## Class: `util.TextEncoder`
+
 <!-- YAML
 added: v8.3.0
 changes:
@@ -1320,6 +1371,7 @@ const { read, written } = encoder.encodeInto(src, dest);
 The encoding supported by the `TextEncoder` instance. Always set to `'utf-8'`.
 
 ## `util.toUSVString(string)`
+
 <!-- YAML
 added: v16.8.0
 -->
@@ -1331,6 +1383,7 @@ Returns the `string` after replacing any surrogate code points
 Unicode "replacement character" U+FFFD.
 
 ## `util.types`
+
 <!-- YAML
 added: v10.0.0
 changes:
@@ -1351,6 +1404,7 @@ useful for addon developers who prefer to do type checking in JavaScript.
 The API is accessible via `require('util').types` or `require('util/types')`.
 
 ### `util.types.isAnyArrayBuffer(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1370,6 +1424,7 @@ util.types.isAnyArrayBuffer(new SharedArrayBuffer());  // Returns true
 ```
 
 ### `util.types.isArrayBufferView(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1389,6 +1444,7 @@ util.types.isArrayBufferView(new ArrayBuffer());  // false
 ```
 
 ### `util.types.isArgumentsObject(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1399,6 +1455,7 @@ added: v10.0.0
 Returns `true` if the value is an `arguments` object.
 
 <!-- eslint-disable prefer-rest-params -->
+
 ```js
 function foo() {
   util.types.isArgumentsObject(arguments);  // Returns true
@@ -1406,6 +1463,7 @@ function foo() {
 ```
 
 ### `util.types.isArrayBuffer(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1414,7 +1472,7 @@ added: v10.0.0
 * Returns: {boolean}
 
 Returns `true` if the value is a built-in [`ArrayBuffer`][] instance.
-This does *not* include [`SharedArrayBuffer`][] instances. Usually, it is
+This does _not_ include [`SharedArrayBuffer`][] instances. Usually, it is
 desirable to test for both; See [`util.types.isAnyArrayBuffer()`][] for that.
 
 ```js
@@ -1423,6 +1481,7 @@ util.types.isArrayBuffer(new SharedArrayBuffer());  // Returns false
 ```
 
 ### `util.types.isAsyncFunction(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1441,6 +1500,7 @@ util.types.isAsyncFunction(async function foo() {});  // Returns true
 ```
 
 ### `util.types.isBigInt64Array(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1456,6 +1516,7 @@ util.types.isBigInt64Array(new BigUint64Array());  // Returns false
 ```
 
 ### `util.types.isBigUint64Array(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1471,6 +1532,7 @@ util.types.isBigUint64Array(new BigUint64Array());  // Returns true
 ```
 
 ### `util.types.isBooleanObject(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1491,6 +1553,7 @@ util.types.isBooleanObject(Boolean(true));  // Returns false
 ```
 
 ### `util.types.isBoxedPrimitive(value)`
+
 <!-- YAML
 added: v10.11.0
 -->
@@ -1512,6 +1575,7 @@ util.types.isBoxedPrimitive(Object(BigInt(5))); // Returns true
 ```
 
 ### `util.types.isCryptoKey(value)`
+
 <!-- YAML
 added: v16.2.0
 -->
@@ -1522,6 +1586,7 @@ added: v16.2.0
 Returns `true` if `value` is a {CryptoKey}, `false` otherwise.
 
 ### `util.types.isDataView(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1540,6 +1605,7 @@ util.types.isDataView(new Float64Array());  // Returns false
 See also [`ArrayBuffer.isView()`][].
 
 ### `util.types.isDate(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1554,6 +1620,7 @@ util.types.isDate(new Date());  // Returns true
 ```
 
 ### `util.types.isExternal(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1599,6 +1666,7 @@ For further information on `napi_create_external`, refer to
 [`napi_create_external()`][].
 
 ### `util.types.isFloat32Array(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1615,6 +1683,7 @@ util.types.isFloat32Array(new Float64Array());  // Returns false
 ```
 
 ### `util.types.isFloat64Array(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1631,6 +1700,7 @@ util.types.isFloat64Array(new Float64Array());  // Returns true
 ```
 
 ### `util.types.isGeneratorFunction(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1649,6 +1719,7 @@ util.types.isGeneratorFunction(function* foo() {});  // Returns true
 ```
 
 ### `util.types.isGeneratorObject(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1669,6 +1740,7 @@ util.types.isGeneratorObject(generator);  // Returns true
 ```
 
 ### `util.types.isInt8Array(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1685,6 +1757,7 @@ util.types.isInt8Array(new Float64Array());  // Returns false
 ```
 
 ### `util.types.isInt16Array(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1701,6 +1774,7 @@ util.types.isInt16Array(new Float64Array());  // Returns false
 ```
 
 ### `util.types.isInt32Array(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1717,6 +1791,7 @@ util.types.isInt32Array(new Float64Array());  // Returns false
 ```
 
 ### `util.types.isKeyObject(value)`
+
 <!-- YAML
 added: v16.2.0
 -->
@@ -1727,6 +1802,7 @@ added: v16.2.0
 Returns `true` if `value` is a {KeyObject}, `false` otherwise.
 
 ### `util.types.isMap(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1741,6 +1817,7 @@ util.types.isMap(new Map());  // Returns true
 ```
 
 ### `util.types.isMapIterator(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1760,6 +1837,7 @@ util.types.isMapIterator(map[Symbol.iterator]());  // Returns true
 ```
 
 ### `util.types.isModuleNamespaceObject(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1770,6 +1848,7 @@ added: v10.0.0
 Returns `true` if the value is an instance of a [Module Namespace Object][].
 
 <!-- eslint-skip -->
+
 ```js
 import * as ns from './a.js';
 
@@ -1777,6 +1856,7 @@ util.types.isModuleNamespaceObject(ns);  // Returns true
 ```
 
 ### `util.types.isNativeError(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1793,6 +1873,7 @@ util.types.isNativeError(new RangeError());  // Returns true
 ```
 
 ### `util.types.isNumberObject(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1809,6 +1890,7 @@ util.types.isNumberObject(new Number(0));   // Returns true
 ```
 
 ### `util.types.isPromise(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1823,6 +1905,7 @@ util.types.isPromise(Promise.resolve(42));  // Returns true
 ```
 
 ### `util.types.isProxy(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1840,6 +1923,7 @@ util.types.isProxy(proxy);  // Returns true
 ```
 
 ### `util.types.isRegExp(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1855,6 +1939,7 @@ util.types.isRegExp(new RegExp('abc'));  // Returns true
 ```
 
 ### `util.types.isSet(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1869,6 +1954,7 @@ util.types.isSet(new Set());  // Returns true
 ```
 
 ### `util.types.isSetIterator(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1888,6 +1974,7 @@ util.types.isSetIterator(set[Symbol.iterator]());  // Returns true
 ```
 
 ### `util.types.isSharedArrayBuffer(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1896,7 +1983,7 @@ added: v10.0.0
 * Returns: {boolean}
 
 Returns `true` if the value is a built-in [`SharedArrayBuffer`][] instance.
-This does *not* include [`ArrayBuffer`][] instances. Usually, it is
+This does _not_ include [`ArrayBuffer`][] instances. Usually, it is
 desirable to test for both; See [`util.types.isAnyArrayBuffer()`][] for that.
 
 ```js
@@ -1905,6 +1992,7 @@ util.types.isSharedArrayBuffer(new SharedArrayBuffer());  // Returns true
 ```
 
 ### `util.types.isStringObject(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1921,6 +2009,7 @@ util.types.isStringObject(new String('foo'));   // Returns true
 ```
 
 ### `util.types.isSymbolObject(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1938,6 +2027,7 @@ util.types.isSymbolObject(Object(symbol));   // Returns true
 ```
 
 ### `util.types.isTypedArray(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1956,6 +2046,7 @@ util.types.isTypedArray(new Float64Array());  // Returns true
 See also [`ArrayBuffer.isView()`][].
 
 ### `util.types.isUint8Array(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1972,6 +2063,7 @@ util.types.isUint8Array(new Float64Array());  // Returns false
 ```
 
 ### `util.types.isUint8ClampedArray(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -1988,6 +2080,7 @@ util.types.isUint8ClampedArray(new Float64Array());  // Returns false
 ```
 
 ### `util.types.isUint16Array(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -2004,6 +2097,7 @@ util.types.isUint16Array(new Float64Array());  // Returns false
 ```
 
 ### `util.types.isUint32Array(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -2020,6 +2114,7 @@ util.types.isUint32Array(new Float64Array());  // Returns false
 ```
 
 ### `util.types.isWeakMap(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -2034,6 +2129,7 @@ util.types.isWeakMap(new WeakMap());  // Returns true
 ```
 
 ### `util.types.isWeakSet(value)`
+
 <!-- YAML
 added: v10.0.0
 -->
@@ -2048,6 +2144,7 @@ util.types.isWeakSet(new WeakSet());  // Returns true
 ```
 
 ### `util.types.isWebAssemblyCompiledModule(value)`
+
 <!-- YAML
 added: v10.0.0
 deprecated: v14.0.0
@@ -2071,6 +2168,7 @@ The following APIs are deprecated and should no longer be used. Existing
 applications and modules should be updated to find alternative approaches.
 
 ### `util._extend(target, source)`
+
 <!-- YAML
 added: v0.7.5
 deprecated: v6.0.0
@@ -2088,6 +2186,7 @@ It is deprecated and should not be used in new code. JavaScript comes with very
 similar built-in functionality through [`Object.assign()`][].
 
 ### `util.isArray(object)`
+
 <!-- YAML
 added: v0.6.0
 deprecated: v4.0.0
@@ -2114,6 +2213,7 @@ util.isArray({});
 ```
 
 ### `util.isBoolean(object)`
+
 <!-- YAML
 added: v0.11.5
 deprecated: v4.0.0
@@ -2138,6 +2238,7 @@ util.isBoolean(false);
 ```
 
 ### `util.isBuffer(object)`
+
 <!-- YAML
 added: v0.11.5
 deprecated: v4.0.0
@@ -2162,6 +2263,7 @@ util.isBuffer(Buffer.from('hello world'));
 ```
 
 ### `util.isDate(object)`
+
 <!-- YAML
 added: v0.6.0
 deprecated: v4.0.0
@@ -2186,6 +2288,7 @@ util.isDate({});
 ```
 
 ### `util.isError(object)`
+
 <!-- YAML
 added: v0.6.0
 deprecated: v4.0.0
@@ -2226,6 +2329,7 @@ util.isError(obj);
 ```
 
 ### `util.isFunction(object)`
+
 <!-- YAML
 added: v0.11.5
 deprecated: v4.0.0
@@ -2254,6 +2358,7 @@ util.isFunction(Bar);
 ```
 
 ### `util.isNull(object)`
+
 <!-- YAML
 added: v0.11.5
 deprecated: v4.0.0
@@ -2279,6 +2384,7 @@ util.isNull(null);
 ```
 
 ### `util.isNullOrUndefined(object)`
+
 <!-- YAML
 added: v0.11.5
 deprecated: v4.0.0
@@ -2305,6 +2411,7 @@ util.isNullOrUndefined(null);
 ```
 
 ### `util.isNumber(object)`
+
 <!-- YAML
 added: v0.11.5
 deprecated: v4.0.0
@@ -2331,6 +2438,7 @@ util.isNumber(NaN);
 ```
 
 ### `util.isObject(object)`
+
 <!-- YAML
 added: v0.11.5
 deprecated: v4.0.0
@@ -2360,6 +2468,7 @@ util.isObject(() => {});
 ```
 
 ### `util.isPrimitive(object)`
+
 <!-- YAML
 added: v0.11.5
 deprecated: v4.0.0
@@ -2399,6 +2508,7 @@ util.isPrimitive(new Date());
 ```
 
 ### `util.isRegExp(object)`
+
 <!-- YAML
 added: v0.6.0
 deprecated: v4.0.0
@@ -2423,6 +2533,7 @@ util.isRegExp({});
 ```
 
 ### `util.isString(object)`
+
 <!-- YAML
 added: v0.11.5
 deprecated: v4.0.0
@@ -2449,6 +2560,7 @@ util.isString(5);
 ```
 
 ### `util.isSymbol(object)`
+
 <!-- YAML
 added: v0.11.5
 deprecated: v4.0.0
@@ -2473,6 +2585,7 @@ util.isSymbol(Symbol('foo'));
 ```
 
 ### `util.isUndefined(object)`
+
 <!-- YAML
 added: v0.11.5
 deprecated: v4.0.0
@@ -2498,6 +2611,7 @@ util.isUndefined(null);
 ```
 
 ### `util.log(string)`
+
 <!-- YAML
 added: v0.3.0
 deprecated: v6.0.0
